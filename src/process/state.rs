@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "linux")))]
 use sysinfo::{Pid, ProcessStatus, ProcessesToUpdate, System};
 
 use crate::model::ServerRuntimeState;
