@@ -1,0 +1,19 @@
+# Perch configuration example
+# Copy to ~/.config/perch/config.toml (or set --config)
+
+[scan]
+# Dev-focused defaults (recommended):
+loopback_only = true          # 127.0.0.1 / ::1 only (not 0.0.0.0 on all interfaces)
+tcp_only = true               # hide UDP (noisy on Windows)
+dev_only = true               # keep Node/.NET/Python/Docker and dev-like processes
+include_wildcard_bind = false # set true to also show 0.0.0.0 / :: listeners
+
+[filter]
+# Ports to hide from list/TUI (SSH, DNS, mDNS, Windows services, etc.)
+ignore_ports = [22, 53, 135, 139, 445, 1900, 2869, 3702, 5040, 5050, 5353, 5357, 7680]
+
+# Executable name substrings to ignore (case-insensitive)
+ignore_executables = ["chrome", "firefox", "msedge", "Code Helper", "svchost", "System"]
+
+# Cmdline substrings to ignore
+ignore_cmdline_patterns = ["devtools"]
