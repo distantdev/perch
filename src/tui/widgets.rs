@@ -142,7 +142,7 @@ fn empty_state_message(filter_query: &str, total_unfiltered: usize) -> String {
 }
 
 pub fn draw_footer(frame: &mut Frame, area: Rect, status: &str, selected_cmdline: Option<&str>) {
-    let help = "[K] Kill  [F] Force  [P] Pause  [C] Resume  [Q] Quit  [/] Filter  [s] Sort";
+    let help = "[x] Kill  [X] Force  [p] Pause  [u] Resume  [j/k] Move  [Q] Quit  [/] Filter  [s] Sort";
     let mut spans = vec![Span::raw(help)];
 
     if !status.is_empty() {

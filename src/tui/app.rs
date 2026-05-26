@@ -142,10 +142,10 @@ impl TuiApp {
                 self.sort_mode = self.sort_mode.cycle();
                 self.apply_view();
             }
-            KeyCode::Char('K') => self.action_kill(false)?,
-            KeyCode::Char('F') => self.action_kill(true)?,
-            KeyCode::Char('P') => self.action_pause()?,
-            KeyCode::Char('C') => self.action_resume()?,
+            KeyCode::Char('x') | KeyCode::Char('K') => self.action_kill(false)?,
+            KeyCode::Char('X') | KeyCode::Char('F') => self.action_kill(true)?,
+            KeyCode::Char('p') | KeyCode::Char('P') => self.action_pause()?,
+            KeyCode::Char('u') | KeyCode::Char('C') => self.action_resume()?,
             KeyCode::Char('r') => self.refresh()?,
             _ => {}
         }

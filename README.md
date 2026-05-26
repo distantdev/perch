@@ -78,10 +78,10 @@ Global flags: `--config <path>`, `-v` / `--verbose`, `--all`.
 | `j` / `k`, arrows | Move selection |
 | `/` or `f` | Edit filter (header) |
 | `s` | Cycle sort |
-| `K` | Kill |
-| `F` | Force kill |
-| `P` | Pause |
-| `C` | Resume |
+| `x` | Kill (Shift+`K` also works) |
+| `X` | Force kill (Shift+`F` also works) |
+| `p` | Pause (Shift+`P` also works) |
+| `u` | Resume (Shift+`C` also works) |
 | `q` | Quit |
 
 The footer shows the selected row's command line when available.

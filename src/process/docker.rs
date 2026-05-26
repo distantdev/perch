@@ -1,6 +1,50 @@
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
+use crate::error::{PerchError, Result};
+
+pub fn container_for_port(port: u16) -> Option<String> {
+    fetch_docker_port_map()?.get(&port).cloned()
+}
+
+pub fn docker_stop(container: &str) -> Result<()> {
+    run_docker(["stop", container], "stop")
+}
+
+pub fn docker_pause(container: &str) -> Result<()> {
+    run_docker(["pause", container], "pause")
+}
+
+pub fn docker_unpause(container: &str) -> Result<()> {
+    run_docker(["unpause", container], "unpause")
+}
+
+fn run_docker<const N: usize>(args: [&str; N], verb: &str) -> Result<()> {
+    let output = Command::new("docker")
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|e| {
+            PerchError::ProcessControl(format!(
+                "docker {verb}: {e} (is Docker running?)"
+            ))
+        })?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let detail = stderr.trim();
+    let message = if detail.is_empty() {
+        format!("docker {verb} exited with {}", output.status)
+    } else {
+        format!("docker {verb}: {detail}")
+    };
+    Err(PerchError::ProcessControl(message))
+}
+
 pub fn fetch_docker_port_map() -> Option<HashMap<u16, String>> {
     let output = run_docker_ps()?;
 
@@ -65,5 +109,10 @@ mod tests {
     #[test]
     fn parses_empty_ports() {
         assert!(parse_docker_ports("").is_empty());
+    }
+
+    #[test]
+    fn container_for_port_missing_when_docker_unavailable() {
+        assert!(container_for_port(59999).is_none());
     }
 }
