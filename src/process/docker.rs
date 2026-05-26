@@ -47,9 +47,7 @@ fn run_docker<const N: usize>(args: [&str; N], verb: &str) -> Result<()> {
         .stderr(Stdio::piped())
         .output()
         .map_err(|e| {
-            PerchError::ProcessControl(format!(
-                "docker {verb}: {e} (is Docker running?)"
-            ))
+            PerchError::ProcessControl(format!("docker {verb}: {e} (is Docker running?)"))
         })?;
 
     if output.status.success() {

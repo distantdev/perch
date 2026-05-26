@@ -67,7 +67,11 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
                 styled_cell(server.port.to_string(), server.runtime_state, selected),
                 styled_cell(typ, server.runtime_state, selected),
                 styled_cell(server.pid.to_string(), server.runtime_state, selected),
-                styled_cell(truncate_path(&server.cwd, 34), server.runtime_state, selected),
+                styled_cell(
+                    truncate_path(&server.cwd, 34),
+                    server.runtime_state,
+                    selected,
+                ),
                 styled_cell(
                     truncate_text(&server.executable, 16),
                     server.runtime_state,
@@ -129,10 +133,7 @@ pub fn merge_table_rows(servers: &[DevServer], terminated: &[DevServer]) -> Vec<
 }
 
 fn status_cell(state: ServerRuntimeState, selected: bool) -> Cell<'static> {
-    Cell::from(Span::styled(
-        state.badge(),
-        badge_style(state, selected),
-    ))
+    Cell::from(Span::styled(state.badge(), badge_style(state, selected)))
 }
 
 fn styled_cell(text: String, state: ServerRuntimeState, selected: bool) -> Cell<'static> {
@@ -157,9 +158,7 @@ fn badge_style(state: ServerRuntimeState, selected: bool) -> Style {
 fn row_style(state: ServerRuntimeState, selected: bool) -> Style {
     let mut style = match state {
         ServerRuntimeState::Running => Style::default(),
-        ServerRuntimeState::Paused => Style::default()
-            .fg(Color::Gray)
-            .add_modifier(Modifier::DIM),
+        ServerRuntimeState::Paused => Style::default().fg(Color::Gray).add_modifier(Modifier::DIM),
         ServerRuntimeState::Terminated => Style::default()
             .fg(Color::DarkGray)
             .add_modifier(Modifier::CROSSED_OUT | Modifier::DIM),

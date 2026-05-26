@@ -48,12 +48,13 @@ fn windows_process_paused(pid: u32) -> bool {
 #[cfg(windows)]
 fn windows_process_paused_via_kernel32(pid: u32) -> bool {
     use std::ffi::c_void;
+    use windows::core::s;
     use windows::Win32::Foundation::{CloseHandle, HANDLE};
     use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
     use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
-    use windows::core::s;
 
-    type IsProcessSuspendedFn = unsafe extern "system" fn(HANDLE) -> windows::Win32::Foundation::BOOL;
+    type IsProcessSuspendedFn =
+        unsafe extern "system" fn(HANDLE) -> windows::Win32::Foundation::BOOL;
 
     unsafe {
         let Ok(process) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else {
@@ -70,8 +71,7 @@ fn windows_process_paused_via_kernel32(pid: u32) -> bool {
             return false;
         };
 
-        let is_process_suspended: IsProcessSuspendedFn =
-            std::mem::transmute(proc as *const c_void);
+        let is_process_suspended: IsProcessSuspendedFn = std::mem::transmute(proc as *const c_void);
         let paused = is_process_suspended(process).as_bool();
         let _ = CloseHandle(process);
         paused

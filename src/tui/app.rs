@@ -245,9 +245,8 @@ impl TuiApp {
 
     fn remember_terminated(&mut self, mut server: DevServer) {
         server.runtime_state = ServerRuntimeState::Terminated;
-        self.terminated.retain(|entry| {
-            entry.server.port != server.port || entry.server.pid != server.pid
-        });
+        self.terminated
+            .retain(|entry| entry.server.port != server.port || entry.server.pid != server.pid);
         self.terminated.push(TerminatedRow {
             server,
             since: Instant::now(),
