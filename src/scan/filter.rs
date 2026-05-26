@@ -51,6 +51,7 @@ mod tests {
             memory_rss_bytes: 0,
             uptime_secs: 0,
             server_type: ServerType::Other,
+            runtime_state: crate::model::ServerRuntimeState::Running,
             docker_container: None,
             warnings: Vec::new(),
         }

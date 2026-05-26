@@ -30,6 +30,25 @@ impl ServerType {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ServerRuntimeState {
+    #[default]
+    Running,
+    Paused,
+    Terminated,
+}
+
+impl ServerRuntimeState {
+    pub fn badge(self) -> &'static str {
+        match self {
+            ServerRuntimeState::Running => "RUN",
+            ServerRuntimeState::Paused => "PAUSE",
+            ServerRuntimeState::Terminated => "KILL",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DevServer {
     pub port: u16,
@@ -43,6 +62,8 @@ pub struct DevServer {
     pub memory_rss_bytes: u64,
     pub uptime_secs: u64,
     pub server_type: ServerType,
+    #[serde(default)]
+    pub runtime_state: ServerRuntimeState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub docker_container: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]

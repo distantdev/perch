@@ -4,11 +4,12 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use ratatui::Frame;
 
-use crate::model::{format_bytes, format_uptime, DevServer, SortMode};
+use crate::model::{format_bytes, format_uptime, DevServer, ServerRuntimeState, SortMode};
 
 pub struct TableView<'a> {
     pub version: &'a str,
     pub servers: &'a [DevServer],
+    pub terminated: &'a [DevServer],
     pub selected: usize,
     pub filter_query: &'a str,
     pub total_unfiltered: usize,
@@ -24,7 +25,9 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
         view.editing_filter,
     );
 
-    if view.servers.is_empty() {
+    let rows_data = merge_table_rows(view.servers, view.terminated);
+
+    if rows_data.is_empty() {
         let message = empty_state_message(view.filter_query, view.total_unfiltered);
         frame.render_widget(
             Paragraph::new(message)
@@ -36,6 +39,7 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
     }
 
     let header = Row::new(vec![
+        Cell::from(""),
         Cell::from("PORT"),
         Cell::from("TYPE"),
         Cell::from("PID"),
@@ -47,36 +51,46 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
     ])
     .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let rows: Vec<Row> = view
-        .servers
+    let rows: Vec<Row> = rows_data
         .iter()
         .enumerate()
-        .map(|(idx, s)| {
-            let typ = s
+        .map(|(idx, server)| {
+            let selected = idx == view.selected;
+            let typ = server
                 .docker_container
                 .as_deref()
-                .map(|c| format!("{} ({c})", s.server_type.as_str()))
-                .unwrap_or_else(|| s.server_type.as_str().to_string());
+                .map(|c| format!("{} ({c})", server.server_type.as_str()))
+                .unwrap_or_else(|| server.server_type.as_str().to_string());
 
-            let style = if idx == view.selected {
-                Style::default()
-                    .bg(Color::DarkGray)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
+            let cells = vec![
+                status_cell(server.runtime_state, selected),
+                styled_cell(server.port.to_string(), server.runtime_state, selected),
+                styled_cell(typ, server.runtime_state, selected),
+                styled_cell(server.pid.to_string(), server.runtime_state, selected),
+                styled_cell(truncate_path(&server.cwd, 34), server.runtime_state, selected),
+                styled_cell(
+                    truncate_text(&server.executable, 16),
+                    server.runtime_state,
+                    selected,
+                ),
+                styled_cell(
+                    format!("{:.1}%", server.cpu_percent),
+                    server.runtime_state,
+                    selected,
+                ),
+                styled_cell(
+                    format_bytes(server.memory_rss_bytes),
+                    server.runtime_state,
+                    selected,
+                ),
+                styled_cell(
+                    format_uptime(server.uptime_secs),
+                    server.runtime_state,
+                    selected,
+                ),
+            ];
 
-            Row::new(vec![
-                Cell::from(s.port.to_string()),
-                Cell::from(typ),
-                Cell::from(s.pid.to_string()),
-                Cell::from(truncate_path(&s.cwd, 36)),
-                Cell::from(truncate_text(&s.executable, 16)),
-                Cell::from(format!("{:.1}%", s.cpu_percent)),
-                Cell::from(format_bytes(s.memory_rss_bytes)),
-                Cell::from(format_uptime(s.uptime_secs)),
-            ])
-            .style(style)
+            Row::new(cells)
         })
         .collect();
 
@@ -84,9 +98,10 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
         rows,
         [
             Constraint::Length(6),
+            Constraint::Length(6),
             Constraint::Length(14),
             Constraint::Length(8),
-            Constraint::Min(32),
+            Constraint::Min(30),
             Constraint::Length(18),
             Constraint::Length(8),
             Constraint::Length(8),
@@ -97,6 +112,62 @@ pub fn draw_table(frame: &mut Frame, area: Rect, view: TableView<'_>) {
     .block(block);
 
     frame.render_widget(table, area);
+}
+
+pub fn merge_table_rows(servers: &[DevServer], terminated: &[DevServer]) -> Vec<DevServer> {
+    let mut rows = servers.to_vec();
+    for ghost in terminated {
+        if rows
+            .iter()
+            .any(|s| s.port == ghost.port && s.pid == ghost.pid)
+        {
+            continue;
+        }
+        rows.push(ghost.clone());
+    }
+    rows
+}
+
+fn status_cell(state: ServerRuntimeState, selected: bool) -> Cell<'static> {
+    Cell::from(Span::styled(
+        state.badge(),
+        badge_style(state, selected),
+    ))
+}
+
+fn styled_cell(text: String, state: ServerRuntimeState, selected: bool) -> Cell<'static> {
+    Cell::from(Span::styled(text, row_style(state, selected)))
+}
+
+fn badge_style(state: ServerRuntimeState, selected: bool) -> Style {
+    let accent = match state {
+        ServerRuntimeState::Running => Style::default().fg(Color::Green),
+        ServerRuntimeState::Paused => Style::default().fg(Color::Yellow),
+        ServerRuntimeState::Terminated => Style::default()
+            .fg(Color::Red)
+            .add_modifier(Modifier::CROSSED_OUT | Modifier::DIM),
+    };
+    if selected {
+        accent.bg(Color::DarkGray).add_modifier(Modifier::BOLD)
+    } else {
+        accent.add_modifier(Modifier::BOLD)
+    }
+}
+
+fn row_style(state: ServerRuntimeState, selected: bool) -> Style {
+    let mut style = match state {
+        ServerRuntimeState::Running => Style::default(),
+        ServerRuntimeState::Paused => Style::default()
+            .fg(Color::Gray)
+            .add_modifier(Modifier::DIM),
+        ServerRuntimeState::Terminated => Style::default()
+            .fg(Color::DarkGray)
+            .add_modifier(Modifier::CROSSED_OUT | Modifier::DIM),
+    };
+    if selected {
+        style = style.bg(Color::DarkGray).add_modifier(Modifier::BOLD);
+    }
+    style
 }
 
 fn filter_display(filter: &str, editing: bool) -> String {
@@ -142,7 +213,7 @@ fn empty_state_message(filter_query: &str, total_unfiltered: usize) -> String {
 }
 
 pub fn draw_footer(frame: &mut Frame, area: Rect, status: &str, selected_cmdline: Option<&str>) {
-    let help = "[x] Kill  [X] Force  [p] Pause  [u] Resume  [j/k] Move  [Q] Quit  [/] Filter  [s] Sort";
+    let help = "[x] Kill  [X] Force  [p] Pause  [u] Resume  [Q] Quit  [/] Filter  [s] Sort";
     let mut spans = vec![Span::raw(help)];
 
     if !status.is_empty() {

@@ -75,7 +75,7 @@ Global flags: `--config <path>`, `-v` / `--verbose`, `--all`.
 
 | Key | Action |
 |-----|--------|
-| `j` / `k`, arrows | Move selection |
+| Up / Down | Move selection |
 | `/` or `f` | Edit filter (header) |
 | `s` | Cycle sort |
 | `x` | Kill (Shift+`K` also works) |

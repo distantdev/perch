@@ -48,10 +48,10 @@ fn print_table(result: &ScanResult) {
     }
 
     println!(
-        "{:<6} {:<10} {:<8} {:<40} {:<16} {:<8} {:<8} {:<12}",
-        "PORT", "TYPE", "PID", "PATH", "EXE", "CPU", "MEM", "UPTIME"
+        "{:>6} {:<6} {:<10} {:<8} {:<40} {:<16} {:<8} {:<8} {:<12}",
+        "", "PORT", "TYPE", "PID", "PATH", "EXE", "CPU", "MEM", "UPTIME"
     );
-    println!("{}", "-".repeat(110));
+    println!("{}", "-".repeat(116));
 
     for s in &result.servers {
         let dir = truncate(&s.cwd, 40);
@@ -62,7 +62,8 @@ fn print_table(result: &ScanResult) {
             .unwrap_or_else(|| s.server_type.as_str().to_string());
 
         println!(
-            "{:<6} {:<10} {:<8} {:<40} {:<16} {:<7.1}% {:<8} {:<12}",
+            "{:>6} {:<6} {:<10} {:<8} {:<40} {:<16} {:<7.1}% {:<8} {:<12}",
+            s.runtime_state.badge(),
             s.port,
             truncate(&typ, 10),
             s.pid,

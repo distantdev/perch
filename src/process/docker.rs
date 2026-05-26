@@ -1,10 +1,31 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::process::{Command, Stdio};
 
 use crate::error::{PerchError, Result};
 
 pub fn container_for_port(port: u16) -> Option<String> {
     fetch_docker_port_map()?.get(&port).cloned()
+}
+
+pub fn fetch_paused_containers() -> Option<HashSet<String>> {
+    let output = Command::new("docker")
+        .args(["ps", "--filter", "status=paused", "--format", "{{.Names}}"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    Some(
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(str::to_string)
+            .collect(),
+    )
 }
 
 pub fn docker_stop(container: &str) -> Result<()> {

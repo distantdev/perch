@@ -3,6 +3,7 @@ use crate::error::Result;
 use crate::model::{DevServer, ScanResult, ServerType};
 use crate::platform::PlatformScanner;
 use crate::process::docker;
+use crate::process::state::detect_runtime_state;
 use crate::scan::classify::{classify_server, is_docker_proxy, is_likely_dev_server};
 use crate::scan::filter::apply_filters;
 use crate::scan::scope::filter_listeners;
@@ -11,6 +12,7 @@ pub fn run_scan(scanner: &dyn PlatformScanner, config: &Config) -> Result<ScanRe
     let listeners = scanner.scan_listeners()?;
     let listeners = filter_listeners(listeners, &config.scan);
     let docker_map = docker::fetch_docker_port_map();
+    let paused_containers = docker::fetch_paused_containers();
     let mut servers = Vec::new();
     let mut errors = Vec::new();
 
@@ -34,6 +36,12 @@ pub fn run_scan(scanner: &dyn PlatformScanner, config: &Config) -> Result<ScanRe
                     }
                 }
 
+                let runtime_state = detect_runtime_state(
+                    listener.pid,
+                    docker_container.as_deref(),
+                    paused_containers.as_ref(),
+                );
+
                 servers.push(DevServer {
                     port: listener.port,
                     protocol: listener.protocol,
@@ -46,6 +54,7 @@ pub fn run_scan(scanner: &dyn PlatformScanner, config: &Config) -> Result<ScanRe
                     memory_rss_bytes: info.memory_rss_bytes,
                     uptime_secs: info.uptime_secs,
                     server_type,
+                    runtime_state,
                     docker_container,
                     warnings,
                 });
